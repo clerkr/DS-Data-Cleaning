@@ -15,8 +15,11 @@ to_write = tibble(
 for (file in tsv_files) {
   data = read_tsv(file, skip = 8)
   column_titles = colnames(data)
+  # This snippet finds the prefix of the column name to help generate a unique identifier for this entry.
+  # It is added to the ID_REF
   signal_a_column <- grep("\\.Signal_A$", column_titles, value = TRUE)
   prefix <- str_extract(signal_a_column, "^[^.]+")
+  # -------------------------
   data = select(data, "ID_REF", contains("Signal_A"), contains("Signal_B"), contains("Detection Pval")) |>
     mutate(ID_REF = paste0(prefix, ".", ID_REF)) |>
     rename("Signal_A" = contains("Signal_A")) |>

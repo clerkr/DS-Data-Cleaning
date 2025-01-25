@@ -1,7 +1,7 @@
 library(tidyverse)
 
-dir_path = "C:/Users/sophi/Documents/Piccolo's Lab/GSE140344/GSE140344_new.tsv"
-file1 = "C:/Users/sophi/Documents/Piccolo's Lab/GSE140344/GSE140344_Meth_UnMethSamples.csv"
+dir_path = "/Users/jonathanroylance/CS_Projects/Lab/GSE140344/GSE140344_new.tsv"
+file1 = "/Users/jonathanroylance/CS_Projects/Lab/GSE140344/GSE140344_Meth_UnMethSamples.csv"
 tsv_file = read_tsv(file1)
 
 # Add ID_REF to be the first column name
