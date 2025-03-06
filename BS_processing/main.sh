@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define main directory
-main_dir="BS_DS_meth_prcs"
+main_dir="GSE81541"
 mkdir -p "$main_dir"  # Use -p to avoid errors if the directory already exists
 
 # Prepare sra tools docker image to download fastq files
@@ -23,6 +23,7 @@ fi
 
 # Loop through the SRR values and run the prefetch command for each one
 for srr_val in "${srr_vals[@]}"; do
+# Make a directotry to hold the srr specific files inside the GSE files
   echo "Fetching fastq for $srr_val..."
   docker run --rm -d -v "$PWD/$main_dir:/home" "$sra_image" prefetch --output-directory /home "$srr_val"
 done
