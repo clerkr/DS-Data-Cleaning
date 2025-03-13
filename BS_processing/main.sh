@@ -25,6 +25,12 @@ fi
 for srr_val in "${srr_vals[@]}"; do
 # Make a directotry to hold the srr specific files inside the GSE files
   echo "Fetching fastq for $srr_val..."
-  docker run --rm -d -v "$PWD/$main_dir:/home" "$sra_image" prefetch --output-directory /home "$srr_val"
+  #docker run --rm -it -v "$PWD/$main_dir:/home" "$sra_image" prefetch --output-directory /home "$srr_val"
+  #nohup docker run --rm -v "$PWD/$main_dir:/home" exec_analysis.sh &
+  docker run --rm -it -v "$PWD/$main_dir:/home" "$sra_image" fasterq-dump "$srr_val" -O /home --temp /home
+
+  # The following command worked when I ran it in an interactive shell manually. Just saving it for redundacy
+  #docker run --rm -it -v /Analysis/DS-Data-Cleaning/BS_processing/GSE81541:/home ncbi/sra-tools fasterq-dump SRR3537005 -O /home --temp /home
+echo "Script finished"
 done
 
