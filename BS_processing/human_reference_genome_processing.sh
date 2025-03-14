@@ -41,4 +41,4 @@ fi
 
 # Run Bismark genome preparation in the container
 echo "Running Bismark genome preparation..."
-docker run -d -v "$MOUNT_PATH:/home" "$CONTAINER_IMAGE" bismark_genome_preparation "/home" "/home/hg38.fa"
+docker run -it -v "$MOUNT_PATH:/home" "$CONTAINER_IMAGE" bismark_genome_preparation "/home" "/home/hg38.fa"
