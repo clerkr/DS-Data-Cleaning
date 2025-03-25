@@ -27,24 +27,30 @@ fi
 # Loop through the SRR values and run the prefetch command for each one
 for srr_val in "${srr_vals[@]}"; do
   # Make a directotry to hold the srr specific files inside the GSE files
-  echo "Fetching fastq for $srr_val..."
-  docker run --rm -it -v "$PWD/$main_dir:/home" "$sra_image" prefetch --output-directory /home "$srr_val"
-  echo "Dumping $srr_val..."
+  echo "Fetching .sra for $srr_val..."
 
-  file="$PWD/$main_dir/$srr_val.fastq"
+  CONTAINER_ID=$(docker run --rm -d -v "$PWD/$main_dir:/home" "$sra_image" prefetch --output-directory /home "$srr_val")
+  # Wait for the container to finish
+  docker logs -f "$CONTAINER_ID" >> main.log 2>&1 &
+  docker wait "$CONTAINER_ID"
+
+  file="$PWD/$main_dir/$srr_val/$srr_val.fastq"
 
   if [ -f "$file" ]; then
       echo "$file already present."
   else
       echo "$file does not exist or is not a regular file."
-      docker run --rm -it -v "$PWD/$main_dir:/home" "$sra_image" fasterq-dump "/home/$srr_val" -O /home --temp /home
+      echo "Dumping $srr_val..."
+      CONTAINER_ID=$(docker run --rm -d -v "$PWD/$main_dir:/home" "$sra_image" fasterq-dump "/home/$srr_val" -O "/home/$srr_val" --temp "/home/$srr_val")
+      docker logs -f "$CONTAINER_ID" >> main.log 2>&1 &
+      docker wait "$CONTAINER_ID"
   fi
   # The following command worked when I ran it in an interactive shell manually. Just saving it for redundacy
   #docker run --rm -it -v /Analysis/DS-Data-Cleaning/BS_processing/GSE81541:/home ncbi/sra-tools fasterq-dump SRR3537005 -O /home --temp /home
 
 
   bismark_container="quay.io/biocontainers/bismark:0.24.2--hdfd78af_0"
-  
+
   if ! docker images | grep -q "$bismark_container"; then
     echo "Pulling docker image: $bismark_container..."
     docker pull "$bismark_container"
@@ -52,14 +58,26 @@ for srr_val in "${srr_vals[@]}"; do
     echo "Docker image '$bismark_container' already exists, skipping pull."
   fi
 
-  docker run -it \
+  CONTAINER_ID=$(docker run --rm -d \
     -v $PWD:/home/gnm \
-    -v "$PWD/$main_dir":/home/fstq \
+    -v "$PWD/$main_dir/$srr_val":/home/fstq \
     $bismark_container \
-    bismark /home/gnm -1 /home/fstq/$srr_val.fastq
-  
+    bismark /home/gnm /home/fstq/$srr_val.fastq)
+    # Use this to make it output where you want: -o /home/fstq
+    
+  docker logs -f "$CONTAINER_ID" >> main.log 2>&1 &
+  # Wait for the container to finish
+  docker wait "$CONTAINER_ID"
+
   echo "Script finished"
 
   # Using nohup with main.sh messing everything up with terminals. use docker wait instead of -it to keep things sequential
 done
 
+
+
+# docker run --rm -it \
+#     -v "$PWD":/home/gnm \
+#     -v "$PWD/GSE81541":/home/fstq \
+#     quay.io/biocontainers/bismark:0.24.2--hdfd78af_0 \
+#     bismark /home/gnm /home/fstq/SRR3537005.fastq
