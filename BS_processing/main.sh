@@ -58,26 +58,73 @@ for srr_val in "${srr_vals[@]}"; do
     echo "Docker image '$bismark_container' already exists, skipping pull."
   fi
 
-  CONTAINER_ID=$(docker run --rm -d \
+
+  BAM_FILE="BS_processing/$main_dir/$srr_val/${srr_val}_bismark_bt2.bam"
+  # FASTQ_FILE="GSE81541/SRR3537005/SRR3537005.fastq"
+
+  if [[ -f "$BAM_FILE" ]]; then
+      echo "File exists: $BAM_FILE"
+  else
+    echo "File not found: $BAM_FILE"
+    CONTAINER_ID=$(docker run --rm -d \
     -v $PWD:/home/gnm \
     -v "$PWD/$main_dir/$srr_val":/home/fstq \
+    -w /home/fstq \
     $bismark_container \
-    bismark /home/gnm /home/fstq/$srr_val.fastq)
-    # Use this to make it output where you want: -o /home/fstq
-    
-  docker logs -f "$CONTAINER_ID" >> main.log 2>&1 &
-  # Wait for the container to finish
+    bismark /home/gnm /home/fstq/$srr_val.fastq -p 8)
+    docker logs -f "$CONTAINER_ID" >> main.log 2>&1 &
+    # Wait for the container to finish
+    docker wait "$CONTAINER_ID"
+  fi
+
+  SORTED_BAM_FILE="BS_processing/$main_dir/$srr_val/${srr_val}_bismark_bt2_sorted.bam"
+  # FASTQ_FILE="GSE81541/SRR3537005/SRR3537005.fastq"
+
+  if [[ -f "$SORTED_BAM_FILE" ]]; then
+      echo "File exists: $SORTED_BAM_FILE"
+  else
+    # This is for sorting .bam files so that they can be assessed with qualimap
+    CONTAINER="quay.io/biocontainers/samtools:1.21--h96c455f_1"
+    docker pull "$CONTAINER"
+    CONTAINER_ID=$(docker run --rm -d \
+        --user root \
+        -v "$PWD/$main_dir/$srr_val:/home" \
+        -w /home \
+        "$CONTAINER" \
+        samtools sort "${srr_val}_bismark_bt2.bam" \
+        -o "${srr_val}_bismark_bt2_sorted.bam"
+    )
+    docker logs -f "$CONTAINER_ID" >> "$main_dir/$srr_val/sorting.log" 2>&1 &
+    docker wait "$CONTAINER_ID"
+
+  fi
+
+  
+  mkdir -p "$main_dir/$srr_val/quality"
+
+  # Quality checking using qualimap. Outputs html, css, and other reports
+  CONTAINER="quay.io/biocontainers/qualimap:2.2.2d--1"
+  docker pull $CONTAINER
+  CONTAINER_ID=$(docker run --rm -d \
+      --user root \
+      -v "$PWD/$main_dir/$srr_val:/home" -w /home "$CONTAINER" \
+      qualimap bamqc -bam "${srr_val}_bismark_bt2_sorted.bam" \
+      -outdir /home/quality -outformat HTML
+  )
+  docker logs -f "$CONTAINER_ID" >> "$main_dir/${srr_val}/quality/quality.log" 2>&1 &
   docker wait "$CONTAINER_ID"
-
-  echo "Script finished"
-
-  # Using nohup with main.sh messing everything up with terminals. use docker wait instead of -it to keep things sequential
 done
 
 
 
 # docker run --rm -it \
-#     -v "$PWD":/home/gnm \
-#     -v "$PWD/GSE81541":/home/fstq \
-#     quay.io/biocontainers/bismark:0.24.2--hdfd78af_0 \
-#     bismark /home/gnm /home/fstq/SRR3537005.fastq
+#   --user root \
+#   -v "$PWD/GSE81541/SRR3537005:/home" \
+#   -w /home quay.io/biocontainers/qualimap:2.2.2d--1 \
+#   qualimap bamqc -bam "SRR3537005_bismark_bt2_sorted.bam" \
+#   -outdir /home/quality -outformat HTML
+
+
+
+
+# nohup bash main.sh 2>&1 &
