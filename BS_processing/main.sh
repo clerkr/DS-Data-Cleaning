@@ -11,9 +11,11 @@ mkdir -p "$main_dir"  # Use -p to avoid errors if the directory already exists
 # fastq file source: https://www.ncbi.nlm.nih.gov/Traces/study/?acc=PRJNA321909&o=acc_s%3Aa
 # Only Down-Syndrome sequences are fetched
 
-srr_vals=("SRR3537005")
+# srr_vals=("SRR3537005")
 
 # srr_vals=("SRR3537005" "SRR3537006" "SRR3537007" "SRR3537008")
+
+srr_vals=("SRR3537006" "SRR3537007" "SRR3537008")
 
 sra_image="ncbi/sra-tools"
 
@@ -127,4 +129,4 @@ done
 
 
 
-# nohup bash main.sh 2>&1 &
+# nohup bash main.sh > main.log 2>&1 &
